@@ -1554,7 +1554,7 @@
 
       // Horas del día para el horario semanal (intervalos de 30 minutos)
       const hourSlots = [];
-      for (let i = 8; i <= 22; i++) {
+      for (let i = 6; i <= 22; i++) {
         hourSlots.push(`${i.toString().padStart(2, '0')}:00`);
         if (i < 22) { // Permitir 22:00 como hora de inicio, 22:30 como hora de fin
           hourSlots.push(`${i.toString().padStart(2, '0')}:30`);
