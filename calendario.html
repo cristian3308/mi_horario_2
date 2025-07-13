@@ -1,0 +1,2360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Horario Dinámico y Animado</title>
+  <!-- Fuentes de Google Fonts: Poppins para títulos, Inter para el resto -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Variables CSS para la paleta de colores de la imagen proporcionada */
+    :root {
+      --bg-main: #F8F3F7; /* Fondo principal, un rosa/lila muy pálido */
+      --purple-dark: #8B6AA6; /* Púrpura oscuro para texto principal, bordes de lazos, nombres de días de la semana */
+      --purple-medium: #B099D6; /* Púrpura medio para el fondo de los nombres de los días y el título del mes */
+      --purple-light: #D3C7E8; /* Púrpura claro para el fondo de las celdas del calendario */
+      --notes-bg: #E9E2F0; /* Un púrpura aún más claro, casi blanco para los fondos de "Notas" y "Pendientes" */
+      --text-body: #5A5A5A; /* Gris oscuro para texto general */
+      --text-day-number: #5E4B77; /* Un púrpura grisáceo oscuro para los números de los días */
+
+      /* Colores de las categorías de eventos (adaptados a la paleta) */
+      --event-color-work: #A58ACF; /* Un púrpura vibrante del rango para trabajo */
+      --event-color-personal: #E0A3C9; /* Un rosa vibrante del rango para personal */
+      --event-color-study: #C5D0EC; /* Un azul lavanda suave para estudio */
+      --event-color-other: #FADDEA; /* Un rosa muy pálido para otros */
+
+      /* --- NUEVOS COLORES PARA LA VISTA SEMANAL (basados en la paleta proporcionada) --- */
+      --weekly-header-bg: #6d00a1; /* Púrpura vibrante para el título "HORARIO SEMANAL" */
+      --weekly-header-text: #ffffff; /* Texto blanco para contraste */
+      --weekly-day-header-bg: #9032bb; /* Púrpura medio para los nombres de días (L-D) */
+      --weekly-time-slot-bg: #e6ccef; /* Púrpura muy pálido para las franjas horarias */
+      --weekly-cell-bg: #cb9bde; /* Púrpura un poco más oscuro para las celdas de eventos (base) */
+      --weekly-cell-hover-bg: #be8edc; /* Tono más oscuro para el hover, de la misma gama */
+      --weekly-text-color: #4b0081; /* Púrpura oscuro para el texto principal del horario */
+
+      --border-radius-lg: 20px; /* Redondeo general de contenedores */
+      --border-radius-md: 10px; /* Redondeo de celdas y botones */
+      --box-shadow-subtle: 0 4px 10px rgba(0, 0, 0, 0.04); /* Sombra muy sutil */
+    }
+
+    /* --- Base Styles --- */
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; /* Alinea al inicio verticalmente */
+      min-height: 100vh;
+      margin: 0;
+      padding: 10px; /* Reducido para ahorrar espacio vertical */
+      box-sizing: border-box;
+      overflow-y: auto; /* Permite scroll si el contenido es grande */
+      color: var(--text-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      position: relative; /* Para posicionar los personajes */
+    }
+
+    /* --- Character Styles (Hidden in Print) --- */
+    .character {
+      position: fixed; /* Mantiene a los personajes en el viewport al hacer scroll */
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      z-index: 9999; /* Asegura que estén por encima de todo lo demás */
+      pointer-events: none; /* No interfieren con clics */
+      opacity: 0.9;
+      transition: transform 0.5s ease-out, opacity 0.3s ease-in-out;
+      transform-origin: center center; /* Para animaciones de rotación correctas */
+    }
+
+    /* Kirby (URL CORRECTA Y TRANSICIÓN PARA MOV. ALEATORIO) */
+    .kirby {
+      width: 80px; height: 80px;
+      top: 50vh; /* Posiciona a la mitad vertical del viewport */
+      /* left será controlado por JS */
+      background-image: url('https://www.gifsanimados.org/data/media/1300/kirby-imagen-animada-0025.gif');
+      animation: kirbyFloat 3s infinite ease-in-out;
+      transition: left 5s ease-in-out; /* Transición para el movimiento lateral */
+    }
+    /* La animación kirbyFloat se mantiene para el efecto de flotar */
+    @keyframes kirbyFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-15px) rotate(5deg); }
+    }
+
+    /* Rick & Morty (URL CORREGIDA) */
+    .rick-morty {
+      width: 120px; height: 120px;
+      bottom: 80px; right: 5vw;
+      background-image: url('https://media.tenor.com/4S0tQe8y1eMAAAAC/rick-and-morty-rick.gif'); /* Asegurada que funciona */
+      animation: rickMortyPortal 4s infinite alternate ease-in-out;
+    }
+    @keyframes rickMortyPortal {
+      0% { transform: translateX(0) scale(0.9); }
+      50% { transform: translateX(-15px) scale(1.05); }
+      100% { transform: translateX(0) scale(0.9); }
+    }
+
+    /* Monsters Inc (Mike Wazowski) (URL CORREGIDA) */
+    .monsters-inc {
+      width: 100px; height: 100px;
+      bottom: 30px; left: 5vw;
+      background-image: url('https://media.tenor.com/UfEwD300F7MAAAAC/mike-wazowski-disney.gif'); /* Asegurada que funciona */
+      animation: mikeWobble 3s infinite ease-in-out;
+    }
+    @keyframes mikeWobble {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-5deg) scale(0.98); }
+      75% { transform: rotate(5deg) scale(1.02); }
+    }
+
+    /* --- Flower Background Animation --- */
+    .flower-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* Keep flowers within bounds */
+      pointer-events: none; /* Crucial: ensures clicks go through to elements underneath */
+      z-index: -1; /* Place behind everything else */
+    }
+
+    .flower {
+      position: absolute;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0; /* Starts hidden */
+      transition: opacity 2s ease-out, transform 4s ease-out; /* For appearing/disappearing and general floating */
+      transform: translateY(0px) rotate(0deg); /* Initial state for animation */
+      animation: flowerFloat 8s ease-in-out infinite alternate; /* Default animation. Duration overridden by JS */
+    }
+
+    /* Specific flower images and responsive sizing using clamp() */
+    .flower.flower-type-0 { /* Aumentado el tamaño mínimo y máximo para que sean más visibles */
+      background-image: url('https://images.unsplash.com/photo-1577317789434-2e6900223ed3?auto=format&fit=crop&w=100&h=100&q=80'); /* Flor rosa */
+      width: clamp(50px, 8vw, 120px);
+      height: clamp(50px, 8vw, 120px);
+    }
+    .flower.flower-type-1 {
+      background-image: url('https://images.unsplash.com/photo-1590214436906-e79e6e4f3a69?auto=format&fit=crop&w=90&h=90&q=80'); /* Flor blanca/clara */
+      width: clamp(45px, 7vw, 110px);
+      height: clamp(45px, 7vw, 110px);
+    }
+    .flower.flower-type-2 {
+      background-image: url('https://images.unsplash.com/photo-1620358872081-3e4b7b3e0c0f?auto=format&fit=crop&w=110&h=110&q=80'); /* Flor púrpura */
+      width: clamp(55px, 9vw, 130px);
+      height: clamp(55px, 9vw, 130px);
+    }
+    .flower.flower-type-3 {
+      background-image: url('https://images.unsplash.com/photo-1594770281358-1b20d7e6c4b2?auto=format&fit=crop&w=95&h=95&q=80'); /* Otra flor rosa/lila */
+      width: clamp(48px, 7.5vw, 115px);
+      height: clamp(48px, 7.5vw, 115px);
+    }
+
+    @keyframes flowerFloat {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(10deg); }
+      100% { transform: translateY(0px) rotate(0deg); }
+    }
+
+    /* --- Main application wrapper --- */
+    .calendar-app-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column; /* Cambiado a columna para que los componentes principales se apilen */
+      gap: 10px; /* Reducido para ahorrar espacio */
+      position: relative; /* Para los botones de vista */
+    }
+
+    /* --- View Toggle Buttons --- */
+    .view-toggle-buttons {
+      display: flex;
+      justify-content: center;
+      top: 0;
+      z-index: 100;
+      width: 100%;
+      padding-bottom: 15px; /* Reducido */
+    }
+    .view-toggle-buttons button {
+      background-color: var(--purple-medium);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1em;
+      margin: 0 5px;
+      transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+    .view-toggle-buttons button:hover {
+      background-color: #A08CBE;
+      transform: translateY(-2px);
+    }
+    .view-toggle-buttons button.active {
+      background-color: var(--purple-dark);
+      box-shadow: var(--box-shadow-subtle);
+    }
+
+    /* --- Main Container Layout (for both monthly and weekly views) --- */
+    .monthly-view-container,
+    .weekly-view-container {
+      display: flex; /* Default to flex, visibility controlled by JS */
+      flex-wrap: wrap; /* Allow wrapping columns on smaller screens */
+      gap: 30px; /* Space between main sections */
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Hide/show containers based on active class */
+    .monthly-view-container:not(.active),
+    .weekly-view-container:not(.active) {
+      display: none;
+    }
+
+    /* Ensure .monthly-view-container starts active */
+    .monthly-view-container.active {
+      display: flex;
+    }
+
+    .right-section {
+      flex: 2 1 600px;
+      min-width: 300px;
+      background-color: white;
+      padding: 30px;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--box-shadow-subtle);
+    }
+
+    .left-section {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      flex: 1 1 350px;
+      min-width: 280px;
+    }
+
+    /* --- Ribbon Notes Section --- */
+    .ribbon-notes {
+      background-color: var(--notes-bg);
+      border-radius: var(--border-radius-lg);
+      padding: 20px;
+      box-shadow: var(--box-shadow-subtle);
+      text-align: center;
+      position: relative;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    /* SVG Base (Ribbon Decoration) */
+    .ribbon-decoration {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 350px;
+      height: auto;
+      z-index: 10;
+    }
+    .ribbon-decoration svg {
+      width: 100%;
+      height: auto;
+    }
+
+    /* Section Titles (Notas, Pendientes, Tareas Pendientes) */
+    .notes-title, .pendientes-title, .tasks-title {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 1.5em;
+      color: var(--purple-dark);
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 11;
+    }
+    .notes-title {
+      margin-top: 60px; /* Margen para que el título no quede debajo del lazo */
+    }
+    .pendientes-title, .tasks-title {
+      margin-bottom: 5px; /* Ajuste para las nuevas secciones */
+      margin-top: 0;
+      text-align: center;
+    }
+
+
+    .ribbon-notes textarea, .pendientes-section textarea { /* Selector unificado */
+      width: calc(100% - 20px);
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid rgba(0,0,0,0.08); /* Borde sutil */
+      border-radius: var(--border-radius-md);
+      resize: vertical; /* Solo permite redimensionar verticalmente */
+      font-family: 'Inter', sans-serif;
+      font-size: 1em;
+      color: var(--text-body);
+      background-color: rgba(255,255,255,0.7); /* Blanco semi-transparente */
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Sombra interna para efecto de profundidad */
+      transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      margin-top: 10px; /* Espacio entre el título y el textarea */
+    }
+    .ribbon-notes textarea:focus, .pendientes-section textarea:focus {
+      border-color: var(--purple-dark);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05), 0 0 0 3px rgba(139,106,166,0.2); /* Resaltado al enfocar */
+      outline: none;
+    }
+
+    /* --- Monthly Pendings Section --- */
+    .pendientes-section {
+      background-color: var(--notes-bg);
+      border-radius: var(--border-radius-lg);
+      padding: 20px;
+      box-shadow: var(--box-shadow-subtle);
+      display: flex;
+      flex-direction: column;
+      min-height: 150px;
+    }
+    .pendientes-section textarea {
+      min-height: 80px; /* Altura mínima para el textarea de pendientes */
+    }
+
+    /* --- Calendar Section (Monthly View) --- */
+    .month-nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding: 0 10px;
+    }
+
+    .month-year-display {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.8em;
+      font-weight: 700;
+      color: var(--purple-medium);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .nav-button {
+      background-color: transparent;
+      border: none;
+      font-size: 2em;
+      color: var(--purple-dark);
+      cursor: pointer;
+      padding: 5px 10px;
+      transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+    .nav-button:hover {
+      transform: scale(1.1);
+      color: #5E4B77;
+    }
+
+    /* --- Day Names (Monthly Calendar header) --- */
+    .day-names {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      width: 100%;
+      margin-bottom: 15px;
+      background-color: var(--purple-medium);
+      border-radius: var(--border-radius-md);
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 500;
+      color: white;
+      font-size: 1.05em;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      -webkit-print-color-adjust: exact;
+    }
+    .day-name-cell {
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    /* --- Calendar Grid & Day Cells --- */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+
+    .day-cell {
+      background-color: var(--purple-light);
+      border-radius: var(--border-radius-md);
+      aspect-ratio: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      position: relative;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .day-cell:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    .day-number {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.3em;
+      font-weight: 600;
+      color: var(--text-day-number);
+      margin-bottom: 5px;
+    }
+
+    /* Days from other months are faded and non-interactive */
+    .day-cell.other-month {
+      opacity: 0.4;
+      pointer-events: none;
+      cursor: default;
+    }
+
+    /* Event Indicator Dot */
+    .event-indicator {
+      width: 8px;
+      height: 8px;
+      background-color: var(--event-color-work);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      animation: popIn 0.3s ease-out;
+      z-index: 20;
+    }
+    @keyframes popIn {
+      from { transform: translateX(-50%) scale(0); opacity: 0; }
+      to { transform: translateX(-50%) scale(1); opacity: 1; }
+    }
+
+    /* --- Weekly Schedule View --- */
+    .weekly-schedule {
+      margin-top: 10px; /* Reducido */
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Red_Pomegranate_%282015%29.jpg/1200px-Red_Pomegranate_%282015%29.jpg');
+      background-size: cover;
+      background-position: center bottom;
+      background-color: rgba(255, 255, 255, 0.8); /* Fondo blanco semi-transparente sobre la imagen */
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--box-shadow-subtle);
+      padding: 10px; /* Ensure padding inside this div */
+      box-sizing: border-box;
+      overflow-x: auto; /* Permite scroll horizontal si la tabla no cabe */
+      flex: 3 1 600px; /* Take more space, adapt width */
+      min-width: 300px;
+      display: flex; /* To contain header and table properly */
+      flex-direction: column;
+    }
+    .weekly-schedule-header {
+      text-align: center;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.5em; /* Reducido aún más */
+      font-weight: 700;
+      color: var(--weekly-header-text);
+      background-color: var(--weekly-header-bg);
+      padding: 8px 15px; /* Reducido */
+      border-radius: var(--border-radius-lg);
+      margin-bottom: 10px; /* Reducido */
+      box-shadow: var(--box-shadow-subtle);
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+      -webkit-print-color-adjust: exact;
+      color-adjust: exact;
+      line-height: 1.2;
+    }
+
+    .weekly-table {
+      width: 100%;
+      border-collapse: separate; /* Permite border-spacing */
+      border-spacing: 3px; /* Espacio entre celdas (reducido) */
+      table-layout: fixed; /* Mantiene anchos de columna consistentes */
+      min-width: unset; /* IMPORTANTE: Permite que la tabla se encoja más allá de un mínimo fijo */
+    }
+    .weekly-table th, .weekly-table td {
+      padding: 1px 2px; /* Reducido drásticamente el padding */
+      text-align: center;
+      border-radius: var(--border-radius-md);
+      vertical-align: top;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75em; /* Reducido */
+      color: var(--weekly-text-color);
+      position: relative; /* Para eventos dentro de la celda */
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      -webkit-print-color-adjust: exact;
+      color-adjust: exact;
+      height: auto; /* Altura de la fila se ajusta al contenido */
+      min-height: 24px; /* Reducido drásticamente para compactar las filas */
+      line-height: 1.2; /* Añadido para mejor empaquetamiento del texto */
+    }
+
+    /* Ajuste de anchos de columna para la tabla semanal */
+    .weekly-table th:first-child, .weekly-table td:first-child {
+      width: 10%; /* Columna de la hora */
+    }
+    .weekly-table th:not(:first-child), .weekly-table td:not(:first-child) {
+      width: calc(90% / 7); /* Las 7 columnas de los días se reparten el resto */
+    }
+
+    /* Day/Hour corner cell */
+    .weekly-table th:first-child:first-child {
+      background-color: transparent;
+      position: relative;
+      overflow: hidden;
+      border-bottom: none;
+      box-shadow: none;
+      color: var(--weekly-text-color);
+      font-weight: 600;
+      text-shadow: none;
+    }
+
+    .weekly-table th:first-child:first-child::before,
+    .weekly-table th:first-child:first-child::after {
+      content: '';
+      position: absolute;
+      background-color: var(--weekly-time-slot-bg);
+      height: 100%; width: 100%;
+      top: 0; left: 0;
+      border-radius: var(--border-radius-md);
+    }
+    .weekly-table th:first-child:first-child::before {
+      -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 0 0);
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 0);
+      background-color: var(--weekly-day-header-bg);
+    }
+    .weekly-table th:first-child:first-child::after {
+      -webkit-clip-path: polygon(0 0, 100% 100%, 0 100%, 0 0);
+      clip-path: polygon(0 0, 100% 100%, 0 100%, 0 0);
+      background-color: var(--weekly-time-slot-bg);
+    }
+
+    .weekly-table th:first-child:first-child span {
+      position: absolute;
+      font-size: 0.65em; /* Reducido */
+      font-weight: 600;
+      color: var(--weekly-text-color);
+      z-index: 1;
+    }
+    .weekly-table th:first-child:first-child .dia-text {
+      top: 25%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+    }
+    .weekly-table th:first-child:first-child .hora-text {
+      bottom: 25%; right: 50%; transform: translate(50%, 50%) rotate(-45deg);
+    }
+
+    /* Day headers (Lunes, Martes, etc.) */
+    .weekly-table th.day-header {
+      background-color: var(--weekly-day-header-bg);
+      color: white;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* Time slots (9.00-10.00, etc.) */
+    .weekly-table td:first-child {
+      background-color: var(--weekly-time-slot-bg);
+      font-weight: 500;
+      color: var(--weekly-text-color);
+    }
+
+    /* Main cells for events */
+    .weekly-table td {
+      background-color: var(--weekly-cell-bg);
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+      vertical-align: middle;
+    }
+    .weekly-table td:hover {
+      background-color: var(--weekly-cell-hover-bg);
+    }
+
+    /* Event display within weekly cells */
+    .weekly-event-item {
+      background-color: var(--event-color-work);
+      color: white;
+      padding: 1px 2px; /* Reducido */
+      border-radius: 5px;
+      margin-bottom: 0; /* Eliminado */
+      font-size: 0.65em; /* Reducido */
+      font-weight: 600;
+      white-space: normal;
+      line-height: 1.1; /* Reducido */
+      width: 100%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease-in-out;
+      -webkit-print-color-adjust: exact;
+      color-adjust: exact;
+      max-height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: calc(100% - 2px); /* Ajustado según nuevo padding */
+    }
+    /* Ajustes para el texto dentro del evento semanal */
+    .weekly-event-item strong {
+      display: block;
+      width: 100%;
+      white-space: nowrap; /* Título siempre en una línea */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.8em; /* Reducido */
+    }
+    .weekly-event-item small {
+      display: block;
+      width: 100%;
+      white-space: nowrap; /* Hora/recurrencia en una línea */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.55em; /* Reducido */
+      opacity: 0.9;
+    }
+    .weekly-event-item:hover {
+      transform: translateY(-1px) scale(1.02);
+      z-index: 10;
+    }
+    .weekly-event-item[data-category="work"] { background-color: var(--event-color-work); }
+    .weekly-event-item[data-category="personal"] { background-color: var(--event-color-personal); }
+    .weekly-event-item[data-category="study"] { background-color: var(--event-color-study); color: var(--text-body); }
+    .weekly-event-item[data-category="other"] { background-color: var(--event-color-other); }
+
+    /* --- Tareas Pendientes Section --- */
+    .tasks-section {
+      flex: 1 1 350px; /* Take less space, adapt width */
+      min-width: 280px;
+      background-color: var(--notes-bg);
+      border-radius: var(--border-radius-lg);
+      padding: 20px;
+      box-shadow: var(--box-shadow-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .task-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tasks-section input[type="text"],
+    .tasks-section input[type="date"] {
+      padding: 10px;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: var(--border-radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 1em;
+      color: var(--text-body);
+      transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .tasks-section input[type="text"]:focus,
+    .tasks-section input[type="date"]:focus {
+      border-color: var(--purple-dark);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05), 0 0 0 3px rgba(139,106,166,0.2);
+      outline: none;
+    }
+
+    #addTaskBtn {
+      background-color: var(--purple-medium);
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+    #addTaskBtn:hover {
+      background-color: #A08CBE;
+      transform: translateY(-2px);
+    }
+
+    .tasks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 400px; /* Arbitrary height, adjust as needed */
+      overflow-y: auto;
+      padding-right: 5px; /* For scrollbar */
+    }
+
+    .task-item {
+      background-color: white;
+      padding: 10px 15px;
+      border-radius: var(--border-radius-md);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out, border 0.2s ease-in-out;
+    }
+    .task-item.completed {
+      background-color: #e0f2f7; /* Lighter blue for completed */
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+    .task-item.due-soon {
+      border: 2px solid var(--event-color-personal); /* Highlight red/pink for urgent tasks */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .task-item-info {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .task-item-info strong {
+      font-size: 1.1em;
+      color: var(--text-body);
+    }
+    .task-item-info small {
+      font-size: 0.85em;
+      color: #777;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .task-actions button {
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+    .task-actions button:hover {
+      transform: scale(1.1);
+    }
+    .task-actions .complete-btn { color: #6AB04C; } /* Green check */
+    .task-actions .complete-btn:hover { color: #4F8A38; }
+    .task-actions .delete-btn { color: #D64545; } /* Red trash */
+    .task-actions .delete-btn:hover { color: #A03131; }
+
+    /* --- Modal for Events (Same as before) --- */
+    .modal {
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.3);
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    .modal.active { opacity: 1; visibility: visible; }
+    .modal-content {
+      background-color: white;
+      padding: 25px;
+      border-radius: var(--border-radius-lg);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      width: 90%; max-width: 500px;
+      transform: translateY(-20px) scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .modal.active .modal-content { transform: translateY(0) scale(1); }
+    .modal-content h2 {
+      font-family: 'Poppins', sans-serif;
+      color: var(--purple-dark);
+      margin-top: 0; margin-bottom: 20px;
+      text-align: center;
+      font-size: 1.8em;
+    }
+    .modal-content label {
+      font-size: 0.9em; color: var(--text-body); margin-bottom: 5px; display: block;
+    }
+    .modal-content input, .modal-content textarea, .modal-content select {
+      width: 100%; padding: 10px; margin-bottom: 15px;
+      border: 1px solid rgba(0,0,0,0.1); border-radius: var(--border-radius-md); box-sizing: border-box;
+      font-family: 'Inter', sans-serif; font-size: 1em;
+      color: var(--text-body);
+      transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .modal-content input:focus, .modal-content textarea:focus, .modal-content select:focus {
+      border-color: var(--purple-dark);
+      box-shadow: 0 0 0 3px rgba(139,106,166,0.2);
+      outline: none;
+    }
+    .modal-content textarea { min-height: 80px; resize: vertical; }
+
+    /* Recurrence radio buttons (Styling to match the image) */
+    .recurrence-options {
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .recurrence-options label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background-color: var(--notes-bg);
+      padding: 8px 12px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+      font-size: 0.9em;
+      border: 1px solid transparent;
+      color: var(--text-body);
+      box-shadow: none;
+    }
+    .recurrence-options label:hover {
+      background-color: #e0d9e8;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .recurrence-options input[type="radio"] {
+      appearance: none; -webkit-appearance: none; -moz-appearance: none;
+      width: 16px; height: 16px;
+      background-color: white;
+      border: 2px solid var(--purple-medium);
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    }
+    .recurrence-options input[type="radio"]:checked {
+      background-color: var(--purple-medium);
+      border-color: var(--purple-medium);
+    }
+    .recurrence-options input[type="radio"]:focus {
+      box-shadow: 0 0 0 2px rgba(176,153,214,0.5);
+    }
+    .recurrence-options input[type="radio"]:checked::after {
+      content: '';
+      width: 6px; height: 6px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .modal-buttons {
+      display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
+    }
+    .modal-buttons button {
+      background-color: var(--purple-medium);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-size: 0.95em;
+      white-space: nowrap; /* Evitar que el texto del botón se rompa */
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    /* Estilo del botón "Cancelar" */
+    .modal-buttons button#cancelAddEventBtn, .modal-buttons button#closeModalViewBtn {
+      background-color: var(--notes-bg);
+      color: var(--text-body);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .modal-buttons button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    /* Hover específico para el botón de guardar */
+    .modal-buttons button#saveEventBtn:hover {
+      background-color: #A08CBE;
+    }
+    /* Hover específico para el botón de cancelar */
+    .modal-buttons button#cancelAddEventBtn:hover, .modal-buttons button#closeModalViewBtn:hover {
+      background-color: #d8cfe2;
+    }
+
+    /* Event List in Modal */
+    .events-list { max-height: 200px; overflow-y: auto; margin-top: 15px; padding-right: 10px; }
+    .event-item {
+      border-radius: var(--border-radius-md);
+      padding: 10px 15px; margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px;
+      transition: background-color 0.2s ease-in-out;
+      color: white;
+      word-break: break-word;
+    }
+    /* Asignar colores de fondo a los eventos según categoría */
+    .event-item[data-category="work"] { background-color: var(--event-color-work); }
+    .event-item[data-category="personal"] { background-color: var(--event-color-personal); }
+    .event-item[data-category="study"] { background-color: var(--event-color-study); color: var(--text-body); }
+    .event-item[data-category="other"] { background-color: var(--event-color-other); }
+
+    .event-item .event-item-info {
+      flex-grow: 1;
+    }
+
+    .event-item strong { display: block; font-size: 1.1em; font-weight: 500; }
+    .event-item small { display: block; font-size: 0.8em; opacity: 0.9; }
+    .event-delete-btn {
+      background: none; border: none; color: inherit;
+      font-size: 1.2em; cursor: pointer;
+      margin-left: 10px;
+      flex-shrink: 0; /* No permitir que el botón de eliminar se comprima */
+      transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+    }
+    .event-delete-btn:hover { transform: scale(1.1); opacity: 0.8; }
+
+    /* --- Responsive Adjustments --- */
+    @media (max-width: 992px) {
+      body { padding: 15px; } /* Mantiene el padding ya reducido */
+      .monthly-view-container, .weekly-view-container {
+        flex-direction: column; /* Apila las secciones (Calendar/Schedule, then Notes/Tasks) */
+        align-items: center;
+        gap: 15px; /* Espacio reducido para consistencia */
+      }
+      .left-section, .right-section, .weekly-schedule, .tasks-section {
+        width: 100%;
+        max-width: 600px; /* Limita el ancho de las secciones apiladas */
+      }
+      .right-section {
+        padding: 20px;
+      }
+      .ribbon-notes { min-height: 250px; }
+      .notes-title { margin-top: 40px; font-size: 1.3em; }
+      .ribbon-decoration { top: -15px; max-width: 300px; }
+      .month-nav-row {
+        margin-bottom: 15px;
+      }
+      .month-year-display { font-size: 2.2em; }
+      .nav-button { font-size: 1.8em; }
+      .calendar-grid { gap: 8px; }
+      .day-cell { padding: 10px; }
+      .day-number { font-size: 1.2em; }
+
+      /* Characters responsive */
+      .kirby { top: 20px; left: 5%; width: 60px; height: 60px; }
+      .rick-morty { bottom: 50px; right: 2%; width: 100px; height: 100px; }
+      .monsters-inc { bottom: 10px; left: 2%; width: 80px; height: 80px; }
+
+      /* Weekly view adjustments for smaller screens */
+      .weekly-schedule-header {
+        font-size: 1.3em; /* Reducido */
+        padding: 5px 10px; /* Reducido */
+        margin-bottom: 8px; /* Reducido */
+      }
+      .weekly-table th, .weekly-table td {
+        padding: 1px 2px; /* Más pequeño para móviles */
+        font-size: 0.7em; /* Más pequeño para móviles */
+        min-height: 22px; /* Más pequeño para móviles */
+      }
+      /* Adjust corner text position for very small space */
+      .weekly-table th:first-child:first-child .dia-text,
+      .weekly-table th:first-child:first-child .hora-text {
+        font-size: 0.6em; /* Más pequeño */
+      }
+      .weekly-table th:first-child:first-child .dia-text { top: 20%; }
+      .weekly-table th:first-child:first-child .hora-text { bottom: 20%; }
+
+      .weekly-event-item {
+        padding: 0 1px; /* Aún más pequeño */
+        font-size: 0.55em; /* Aún más pequeño */
+        height: calc(100% - 0px);
+      }
+      .weekly-event-item strong { font-size: 0.75em; } /* Aún más pequeño */
+      .weekly-event-item small { font-size: 0.5em; } /* Aún más pequeño */
+
+      /* tasks-section responsiveness */
+      .tasks-section {
+        padding: 20px;
+        gap: 10px;
+      }
+      .tasks-title {
+        font-size: 1.3em;
+        margin-bottom: 10px;
+      }
+      .task-input-container {
+        gap: 8px;
+      }
+      #addTaskBtn {
+        padding: 8px 12px;
+        font-size: 0.9em;
+      }
+      .tasks-list {
+        gap: 8px;
+      }
+      .task-item {
+        padding: 8px 12px;
+        font-size: 0.9em;
+      }
+      .task-item-info strong { font-size: 1em; }
+      .task-item-info small { font-size: 0.8em; }
+      .task-actions button { font-size: 1.1em; }
+    }
+
+    @media (max-width: 768px) {
+      .weekly-table th:first-child, .weekly-table td:first-child {
+        width: 15%; /* Give time column a bit more space on smaller screens */
+      }
+      .weekly-table th:not(:first-child), .weekly-table td:not(:first-child) {
+        width: calc(85% / 7); /* Adjust day columns accordingly */
+      }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 8px; } /* Aún menos padding */
+      .monthly-view-container, .weekly-view-container { gap: 8px; } /* Menor espacio */
+      .left-section, .right-section, .weekly-schedule, .tasks-section { gap: 15px; } /* Menos espacio entre secciones */
+      .right-section { padding: 10px; } /* Menos padding en calendario */
+      .notes-title, .pendientes-title, .tasks-title { font-size: 1.1em; margin-bottom: 8px; }
+      .ribbon-decoration { top: -8px; max-width: 200px; }
+      .month-year-display { font-size: 1.5em; }
+      .nav-button { font-size: 1.2em; }
+      .day-names { font-size: 0.8em; padding: 6px 0; }
+      .day-cell { padding: 6px; border-radius: 6px; gap: 3px; }
+      .day-number { font-size: 0.9em; }
+      .event-indicator { width: 6px; height: 6px; bottom: 4px; }
+      .modal-content { padding: 10px; border-radius: 10px; }
+      .modal-content h2 { font-size: 1.3em; margin-bottom: 15px; }
+      .modal-buttons { flex-direction: column; gap: 6px; margin-top: 15px; }
+      .modal-buttons button { width: 100%; padding: 8px; font-size: 0.9em; }
+
+      /* Even more aggressive for smallest screens */
+      .weekly-schedule-header {
+        font-size: 1.2em; /* La fuente más pequeña */
+        padding: 4px 8px; /* El padding más pequeño */
+        margin-bottom: 6px;
+      }
+      .weekly-table { border-spacing: 1px; } /* Espaciado más ajustado */
+      .weekly-table th, .weekly-table td {
+        padding: 0 1px; /* El padding más pequeño */
+        font-size: 0.65em; /* La fuente más pequeña */
+        min-height: 18px; /* La altura mínima más pequeña */
+      }
+      .weekly-table th:first-child:first-child .dia-text,
+      .weekly-table th:first-child:first-child .hora-text {
+        font-size: 0.55em; /* Fuente para las esquinas más pequeña */
+      }
+      .weekly-event-item {
+        padding: 0; /* Sin padding */
+        font-size: 0.5em; /* Fuente de evento más pequeña */
+        height: 100%;
+        -webkit-line-clamp: 2; /* Limita texto a 2 líneas */
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .weekly-event-item strong { font-size: 0.7em; white-space: normal; } /* Permite que el título se envuelva */
+      .weekly-event-item small { font-size: 0.45em; white-space: normal; } /* Permite que la hora se envuelva */
+    }
+
+    /* --- Print Styles --- */
+    @media print {
+      body {
+        background-color: white !important;
+        min-height: auto;
+        overflow: visible !important;
+        padding: 10mm;
+        font-size: 10pt;
+      }
+
+      /* Ocultar elementos interactivos y decorativos solo en la impresión */
+      .calendar-app-wrapper .view-toggle-buttons, /* Botones de vista */
+      .main-container .nav-button,
+      .modal,
+      .character,
+      .ribbon-decoration, /* Ocultar lazos */
+      .flower-container /* Ocultar las flores al imprimir */
+      {
+        display: none !important;
+      }
+
+      /* Forzar visualización de la vista activa para imprimir, ocultando la otra */
+      .monthly-view-container, .weekly-view-container {
+        display: flex !important; /* Force display for active view */
+        flex-direction: row !important; /* Force side-by-side on print */
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        max-width: none !important;
+        gap: 20mm !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        background-color: white !important; /* Force white background for parent */
+        background-image: none !important; /* Hide background image for weekly view container */
+      }
+      /* Ensure that if a container is explicitly set to flex for screen, it respects that */
+      .monthly-view-container.active, .weekly-view-container.active {
+        display: flex !important;
+      }
+
+      /* Adjust flex-basis for printing */
+      .left-section, .right-section, .weekly-schedule, .tasks-section {
+        width: auto !important;
+        flex: 1 !important; /* Distribute space evenly */
+        max-width: none !important;
+        gap: 15mm !important; /* Adjust internal gap for sections */
+        /* Ensure backgrounds and shadows are gone or minimal */
+        background-color: white !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+
+      .weekly-schedule {
+        /* If it had its own background image, make sure it's gone for print */
+        background-image: none !important;
+      }
+
+      /* Hide elements specific to task input/actions in print */
+      .tasks-section .task-input-container,
+      .tasks-section .task-actions button {
+        display: none !important;
+      }
+
+      .tasks-section {
+        background-color: #f8f8f8 !important; /* Light background for tasks section */
+        border: 1px solid #ddd !important;
+        padding: 15px !important;
+      }
+
+      .tasks-title {
+        color: black !important;
+        font-size: 14pt !important;
+        margin-bottom: 10px !important;
+      }
+
+      .tasks-list {
+        max-height: none !important; /* Allow tasks list to grow */
+        overflow: visible !important;
+        padding-right: 0 !important;
+      }
+
+      .task-item {
+        background-color: white !important;
+        border: 1px solid #eee !important;
+        box-shadow: none !important;
+        padding: 8px 12px !important;
+        margin-bottom: 5px !important; /* Space between tasks */
+        color: black !important;
+        text-decoration: none !important; /* Remove strikethrough for completed tasks */
+        opacity: 1 !important; /* Full opacity */
+      }
+      .task-item.completed {
+          background-color: #f0f0f0 !important; /* Slightly distinguished */
+      }
+      .task-item.due-soon { /* Remove special styling */
+        border: 1px solid #eee !important;
+        box-shadow: none !important;
+      }
+      .task-item-info strong, .task-item-info small {
+        color: black !important;
+      }
+
+      /* Monthly calendar print styles (adjustments for potential side-by-side layout) */
+      .ribbon-notes, .pendientes-section {
+        border-radius: 5px !important;
+        border: 1px solid #ddd !important;
+        padding: 15px !important;
+        min-height: 100px !important;
+      }
+      .ribbon-notes textarea, .pendientes-section textarea { /* Selector unificado */
+        border: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        resize: none !important;
+        -webkit-print-color-adjust: exact;
+        color: black !important;
+      }
+      .month-nav-row {
+        justify-content: center !important;
+        padding: 0 !important;
+        margin-bottom: 15px !important;
+      }
+      .month-year-display {
+        color: black !important;
+        font-size: 20pt !important;
+      }
+      .day-names {
+        background-color: #ddd !important;
+        color: black !important;
+        font-size: 10pt !important;
+        border-radius: 5px !important;
+        margin-bottom: 10px !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .calendar-grid {
+        gap: 5px !important;
+      }
+      .day-cell {
+        background-color: #f0f0f0 !important;
+        box-shadow: none !important;
+        border-radius: 5px !important;
+        border: 1px solid #eee !important;
+        transform: none !important;
+        opacity: 1 !important;
+        padding: 8px !important;
+      }
+      .day-cell.other-month {
+        background-color: #e8e8e8 !important;
+      }
+      .day-number {
+        color: black !important;
+        font-size: 11pt !important;
+      }
+      .event-indicator {
+        background-color: #555 !important;
+        box-shadow: none !important;
+      }
+
+      /* --- Weekly Schedule Print Adjustments --- */
+      .weekly-schedule {
+        background-color: white !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        overflow-x: visible !important; /* Ensure table fits */
+      }
+      .weekly-schedule-header {
+        background-color: #e0e0e0 !important; /* Default header color for print */
+        color: black !important;
+        box-shadow: none !important;
+        border-radius: 5px !important;
+        margin-bottom: 15px !important;
+        font-size: 1.5em !important;
+        text-shadow: none !important;
+      }
+      .weekly-table {
+        border-spacing: 2px !important; /* Reduce spacing for print */
+        min-width: 0 !important; /* Allow table to shrink */
+        width: 100% !important;
+      }
+      .weekly-table th, .weekly-table td {
+        background-color: #f8f8f8 !important; /* Lighter background for cells */
+        border: 1px solid #eee !important;
+        box-shadow: none !important;
+        border-radius: 3px !important;
+        font-size: 0.8em !important;
+        height: auto !important; /* Allow height to adjust for print */
+      }
+      .weekly-table th.day-header {
+        background-color: #e0e0e0 !important; /* Header day background */
+        color: black !important;
+        text-shadow: none !important;
+      }
+      .weekly-table td:first-child {
+        background-color: #ededed !important; /* Time slot background */
+        color: black !important;
+      }
+      .weekly-table th:first-child:first-child::before,
+      .weekly-table th:first-child:first-child::after {
+        background-color: #e0e0e0 !important; /* Corner effect for print */
+      }
+      .weekly-table th:first-child:first-child .dia-text,
+      .weekly-table th:first-child:first-child .hora-text {
+        color: black !important; /* Black text for print */
+      }
+      .weekly-event-item {
+        background-color: #e0e0e0 !important; /* Events light grey */
+        color: black !important;
+        box-shadow: none !important;
+        font-size: 0.7em !important;
+        padding: 2px 4px !important;
+        height: auto !important; /* Allow height to adjust for content */
+      }
+      /* Specific colors for events in print, but using duller versions for less ink */
+      .weekly-event-item[data-category="work"] { background-color: #d1d9e2 !important; color: black !important; }
+      .weekly-event-item[data-category="personal"] { background-color: #c0dbc0 !important; color: black !important; }
+      .weekly-event-item[data-category="study"] { background-color: #f7e0a8 !important; color: black !important; }
+      .weekly-event-item[data-category="other"] { background-color: #f8d0e0 !important; color: black !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Personajes Animados -->
+  <div class="character kirby"></div>
+  <div class="character rick-morty"></div>
+  <div class="character monsters-inc"></div>
+
+  <!-- Contenedor para las flores de fondo -->
+  <div class="flower-container">
+    <!-- Las flores se añadirán aquí con JavaScript -->
+  </div>
+
+  <div class="calendar-app-wrapper">
+    <!-- Botones para cambiar de vista -->
+    <div class="view-toggle-buttons">
+      <button id="monthlyViewBtn" class="active">Vista Mensual</button>
+      <button id="weeklyViewBtn">Vista Semanal</button>
+    </div>
+
+    <!-- Contenedor de la Vista Mensual -->
+    <div id="monthlyViewContainer" class="monthly-view-container active">
+      <div class="right-section">
+        <!-- Encabezado del Calendario (Mes y Navegación) -->
+        <div class="month-nav-row">
+          <span id="monthYearDisplay" class="month-year-display"></span>
+          <div class="nav-buttons">
+            <button id="prevMonth" class="nav-button" aria-label="Mes anterior">&lt;</button>
+            <button id="nextMonth" class="nav-button" aria-label="Mes siguiente">&gt;</button>
+          </div>
+        </div>
+
+        <!-- Nombres de los Días de la Semana -->
+        <div class="day-names">
+          <div class="day-name-cell">L</div>
+          <div class="day-name-cell">M</div>
+          <div class="day-name-cell">X</div>
+          <div class="day-name-cell">J</div>
+          <div class="day-name-cell">V</div>
+          <div class="day-name-cell">S</div>
+          <div class="day-name-cell">D</div>
+        </div>
+
+        <!-- Cuadrícula de Días (generada por JS) -->
+        <div class="calendar-grid" id="calendarGrid">
+          <!-- Las celdas de los días se generarán aquí por JavaScript -->
+        </div>
+      </div>
+
+      <div class="left-section">
+        <!-- Sección de Notas con Lazos -->
+        <div class="ribbon-notes">
+          <div class="ribbon-decoration">
+            <!-- SVG para la decoración de lazos -->
+            <svg viewBox="0 0 300 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Lazos y cintas -->
+              <path d="M50 30 C50 50 20 50 20 30 L10 40 L15 60 L30 50 C30 70 60 70 60 50 L65 60 L70 40 L50 30 Z" fill="#D8C2E7"/>
+              <path d="M50 30 C50 50 20 50 20 30 L10 40 L15 60 L30 50 C30 70 60 70 60 50 L65 60 L70 40 L50 30 Z" stroke="#8B6AA6" stroke-width="1.5"/>
+              <path d="M40 55 L40 120 C40 125 45 130 55 130 L65 120" stroke="#8B6AA6" stroke-width="1.5"/>
+              <path d="M250 30 C250 50 280 50 280 30 L290 40 L285 60 L270 50 C270 70 240 70 240 50 L235 60 L230 40 L250 30 Z" fill="#D8C2E7"/>
+              <path d="M250 30 C250 50 280 50 280 30 L290 40 L285 60 L270 50 C270 70 240 70 240 50 L235 60 L230 40 L250 30 Z" stroke="#8B6AA6" stroke-width="1.5"/>
+              <path d="M260 55 L260 120 C260 125 255 130 245 130 L235 120" stroke="#8B6AA6" stroke-width="1.5"/>
+              <path d="M70 30 Q150 0 230 30" stroke="#8B6AA6" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <span class="notes-title">Notas</span>
+          <textarea id="notesArea" placeholder="Escribe aquí tus notas..."></textarea>
+        </div>
+
+        <!-- Sección de Pendientes del Mes -->
+        <div class="pendientes-section">
+          <span class="pendientes-title">Pendientes del mes:</span>
+          <textarea id="pendientesArea" placeholder="Añade aquí tus pendientes mensuales..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor de la Vista Semanal -->
+    <div id="weeklyViewContainer" class="weekly-view-container">
+      <div class="weekly-schedule">
+        <div class="weekly-schedule-header">HORARIO SEMANAL</div>
+        <table class="weekly-table">
+          <thead>
+            <tr>
+              <th>
+                <span class="dia-text">DÍA</span><br>
+                <span class="hora-text">HORA</span>
+              </th>
+              <th class="day-header">LUNES</th>
+              <th class="day-header">MARTES</th>
+              <th class="day-header">MIÉRCOLES</th>
+              <th class="day-header">JUEVES</th>
+              <th class="day-header">VIERNES</th>
+              <th class="day-header">SÁBADO</th>
+              <th class="day-header">DOMINGO</th>
+            </tr>
+          </thead>
+          <tbody id="weeklyScheduleBody">
+            <!-- Las filas de horas y celdas de eventos se generarán aquí por JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- NUEVA SECCIÓN: Tareas Pendientes -->
+      <div class="tasks-section">
+        <span class="tasks-title">Tareas Pendientes</span>
+        <div class="task-input-container">
+          <input type="text" id="newTaskTitle" placeholder="Nueva tarea pendiente..." />
+          <input type="date" id="newTaskDueDate" />
+          <button id="addTaskBtn">Añadir Tarea</button>
+        </div>
+        <div id="tasksList" class="tasks-list">
+          <!-- Las tareas se renderizarán aquí por JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para gestionar eventos -->
+  <div id="eventModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle"></h2>
+
+      <!-- Vista de eventos existentes -->
+      <div id="viewEventsList">
+        <div class="events-list" id="currentDayEvents">
+          <!-- Los eventos del día se mostrarán aquí -->
+        </div>
+        <p id="noEventsMessage" style="text-align: center; color: #888; font-style: italic; display: none;">No hay eventos para este día.</p>
+        <div class="modal-buttons">
+          <button id="addEventFromViewBtn">Añadir Nuevo Evento</button>
+          <button id="closeModalViewBtn">Cerrar</button>
+        </div>
+      </div>
+
+      <!-- Formulario para añadir un nuevo evento -->
+      <div id="addEventForm" style="display:none;">
+        <label for="eventTitle">Título:</label>
+        <input type="text" id="eventTitle" placeholder="Título del evento" required>
+
+        <label for="eventDescription">Descripción (opcional):</label>
+        <textarea id="eventDescription" placeholder="Descripción del evento"></textarea>
+
+        <label for="eventStartTime">Hora de Inicio:</label>
+        <select id="eventStartTime">
+          <!-- Opciones de hora serán generadas por JS -->
+        </select>
+
+        <label for="eventEndTime">Hora de Fin:</label>
+        <select id="eventEndTime">
+          <!-- Opciones de hora serán generadas por JS -->
+        </select>
+
+        <label>Repetir:</label>
+        <div class="recurrence-options">
+          <label>
+            <input type="radio" name="recurrence" value="none" checked>
+            Solo este día
+          </label>
+          <label>
+            <input type="radio" name="recurrence" value="daily">
+            Cada día
+          </label>
+          <label>
+            <input type="radio" name="recurrence" value="weekly">
+            Cada semana
+          </label>
+          <label>
+            <input type="radio" name="recurrence" value="monthly">
+            Cada mes
+          </label>
+        </div>
+
+        <label for="eventCategory">Categoría:</label>
+        <select id="eventCategory">
+          <option value="work">Trabajo</option>
+          <option value="personal">Personal</option>
+          <option value="study">Estudio</option>
+          <option value="other">Otro</option>
+        </select>
+        <div class="modal-buttons">
+          <button id="saveEventBtn">Guardar Evento</button>
+          <button id="cancelAddEventBtn">Cancelar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+    import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyBhn6A3vMagGVnLAS5bGbGwalk_ZEXyyxE", // TU API_KEY
+      authDomain: "calendario-dc53f.firebaseapp.com",
+      projectId: "calendario-dc53f",
+      storageBucket: "calendario-dc53f.firebasestorage.app",
+      messagingSenderId: "60196579326",
+      appId: "1:60196579326:web:eae895db3c3167d4a482af",
+      measurementId: "G-6WV1E8QGG5"
+    };
+
+    // Initialize Firebase
+    window.app = initializeApp(firebaseConfig); // Hacemos 'app' global solo por si analytics la necesita más tarde
+    window.db = getFirestore(window.app); // Hacemos 'db' global para que todo el script lo use
+    window.analytics = getAnalytics(window.app); // Hacemos 'analytics' global también
+
+    // NOTA IMPORTANTE: Las variables y funciones principales del calendario
+    // ahora están dentro de este mismo bloque <script type="module">
+    // para garantizar que 'db' sea accesible en su ámbito.
+
+    // Variables globales para los datos (serán pobladas por Firestore o localStorage como fallback)
+    let allEventPatterns = [];
+    let allTasks = [];
+
+    // Referencias a colecciones y documentos de Firestore
+    const eventsCol = collection(db, "events");
+    const tasksCol = collection(db, "tasks");
+    const globalSettingsDoc = doc(db, "settings", "global_notes_pendientes"); // Un solo documento para notas y pendientes globales
+
+    document.addEventListener('DOMContentLoaded', async () => { 
+      const monthlyViewContainer = document.getElementById('monthlyViewContainer');
+      const weeklyViewContainer = document.getElementById('weeklyViewContainer');
+      const monthlyViewBtn = document.getElementById('monthlyViewBtn');
+      const weeklyViewBtn = document.getElementById('weeklyViewBtn');
+      const calendarGrid = document.getElementById('calendarGrid');
+      const weeklyScheduleBody = document.getElementById('weeklyScheduleBody');
+      const monthYearDisplay = document.getElementById('monthYearDisplay');
+      const prevMonthBtn = document.getElementById('prevMonth');
+      const nextMonthBtn = document.getElementById('nextMonth');
+      const eventModal = document.getElementById('eventModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const eventTitleInput = document.getElementById('eventTitle');
+      const eventDescriptionInput = document.getElementById('eventDescription');
+      const eventStartTimeSelect = document.getElementById('eventStartTime');
+      const eventEndTimeSelect = document.getElementById('eventEndTime');
+      const eventCategorySelect = document.getElementById('eventCategory');
+      const recurrenceOptions = document.querySelectorAll('input[name="recurrence"]');
+      const saveEventBtn = document.getElementById('saveEventBtn');
+      const cancelAddEventBtn = document.getElementById('cancelAddEventBtn');
+      const addEventForm = document.getElementById('addEventForm');
+      const viewEventsList = document.getElementById('viewEventsList');
+      const currentDayEventsContainer = document.getElementById('currentDayEvents');
+      const noEventsMessage = document.getElementById('noEventsMessage');
+      const addEventFromViewBtn = document.getElementById('addEventFromViewBtn');
+      const closeModalViewBtn = document.getElementById('closeModalViewBtn');
+
+      const notesArea = document.getElementById('notesArea');
+      const pendientesArea = document.getElementById('pendientesArea');
+
+      // Nuevos elementos para Tareas Pendientes
+      const newTaskTitleInput = document.getElementById('newTaskTitle');
+      const newTaskDueDateInput = document.getElementById('newTaskDueDate');
+      const addTaskBtn = document.getElementById('addTaskBtn');
+      const tasksListContainer = document.getElementById('tasksList');
+
+      let currentMonth = new Date().getMonth();
+      let currentYear = new Date().getFullYear();
+      let selectedDate = null;
+      let currentView = 'monthly';
+
+      const monthNames = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+      ];
+      const dayLabels = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+
+      // Horas del día para el horario semanal (intervalos de 30 minutos)
+      const hourSlots = [];
+      for (let i = 8; i <= 22; i++) {
+        hourSlots.push(`${i.toString().padStart(2, '0')}:00`);
+        if (i < 22) { // Permitir 22:00 como hora de inicio, 22:30 como hora de fin
+          hourSlots.push(`${i.toString().padStart(2, '0')}:30`);
+        }
+      }
+      hourSlots.push('23:00'); // Último slot para eventos que terminan a las 23:00
+
+      const eventCategoryColors = {
+        work: 'var(--event-color-work)',
+        personal: 'var(--event-color-personal)',
+        study: 'var(--event-color-study)',
+        other: 'var(--event-color-other)'
+      };
+
+      // --- Función para cargar datos desde Firestore y luego desde localStorage ---
+      async function loadData() {
+        try {
+          // Cargar notas y pendientes de Firestore
+          const docSnap = await getDoc(globalSettingsDoc);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            notesArea.value = data.notesContent || '';
+            pendientesArea.value = data.pendientesContent || '';
+          } else {
+            console.log("No hay notas/pendientes globales en Firestore. Usando localStorage o valores iniciales.");
+            // Fallback a localStorage si no hay datos globales en Firestore
+            notesArea.value = localStorage.getItem('notesContent') || '';
+            pendientesArea.value = localStorage.getItem('pendientesContent') || '';
+          }
+
+          // Cargar eventos de Firestore
+          const eventSnapshot = await getDocs(eventsCol);
+          allEventPatterns = eventSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          // Cargar tareas de Firestore
+          const taskSnapshot = await getDocs(tasksCol);
+          allTasks = taskSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          // Guardar en localStorage como backup local rápido (opcional, pero buena práctica)
+          localStorage.setItem('allEventPatterns', JSON.stringify(allEventPatterns));
+          localStorage.setItem('allTasks', JSON.stringify(allTasks));
+          localStorage.setItem('notesContent', notesArea.value);
+          localStorage.setItem('pendientesContent', pendientesArea.value);
+
+        } catch (error) {
+          console.error('Error al cargar datos de Firestore:', error);
+          // Fallback completo a localStorage si hay cualquier problema con Firebase
+          allEventPatterns = JSON.parse(localStorage.getItem('allEventPatterns')) || [];
+          allTasks = JSON.parse(localStorage.getItem('allTasks')) || [];
+          notesArea.value = localStorage.getItem('notesContent') || '';
+          pendientesArea.value = localStorage.getItem('pendientesContent') || '';
+          console.warn('Se cargaron los datos de localStorage como fallback.');
+        }
+      }
+
+      // --- Notas y Pendientes Persistencia (AHORA A FIRESTORE) ---
+      async function saveNotesAndPendientes() {
+        try {
+          await setDoc(globalSettingsDoc, {
+            notesContent: notesArea.value,
+            pendientesContent: pendientesArea.value
+          });
+          console.log("Notas y Pendientes guardados en Firestore.");
+          // También guardar en localStorage
+          localStorage.setItem('notesContent', notesArea.value);
+          localStorage.setItem('pendientesContent', pendientesArea.value);
+        } catch (e) {
+          console.error("Error al guardar notas y pendientes en Firestore:", e);
+          alert("No se pudieron guardar las notas y pendientes.");
+        }
+      }
+
+      // Guardar al cambiar el input
+      notesArea.addEventListener('input', saveNotesAndPendientes);
+      pendientesArea.addEventListener('input', saveNotesAndPendientes);
+
+      // Ayudante para obtener el día de la semana (0=Lun, 6=Dom)
+      function getCalendarDayOfWeek(date) {
+        let jsDay = date.getDay(); // 0 (Domingo) a 6 (Sábado)
+        return (jsDay === 0) ? 6 : jsDay - 1; // 0 (Lunes) a 6 (Domingo)
+      }
+
+      function getFormattedDate(date) {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      // Función para verificar si un patrón de evento es visible en un día dado
+      // Se asegura de que la fecha de inicio del patrón se considere la medianoche
+      function isEventVisibleOnDay(eventPattern, targetDate) {
+        const patternStartDate = new Date(eventPattern.startDate + 'T00:00:00'); 
+        const normalizedPatternStartDate = new Date(patternStartDate.getFullYear(), patternStartDate.getMonth(), patternStartDate.getDate());
+        const normalizedTargetDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+
+        if (normalizedTargetDate < normalizedPatternStartDate) {
+          return false; // El evento no puede ser visible antes de su fecha de inicio
+        }
+
+        if (eventPattern.recurrence === 'none') {
+          return normalizedPatternStartDate.getTime() === normalizedTargetDate.getTime();
+        } else if (eventPattern.recurrence === 'daily') {
+          return true;
+        } else if (eventPattern.recurrence === 'weekly') {
+          // Comprueba si el día de la semana de la fecha objetivo coincide con el día de inicio del patrón
+          return getCalendarDayOfWeek(patternStartDate) === getCalendarDayOfWeek(targetDate);
+        } else if (eventPattern.recurrence === 'monthly') {
+          // Comprueba si el día del mes de la fecha objetivo coincide con el día de inicio del patrón
+          return patternStartDate.getDate() === targetDate.getDate();
+        }
+        return false;
+      }
+
+
+      // --- Renderizado del Calendario (Vista Mensual) ---
+      function renderMonthlyCalendar() {
+        calendarGrid.innerHTML = '';
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        let startDay = getCalendarDayOfWeek(firstDayOfMonth); // 0=Lun, 6=Dom
+
+        monthYearDisplay.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+        // Rellenar eventos para indicadores de visualización
+        let eventsToDisplayForMonthlyIndicators = {};
+        for (let i = 1; i <= daysInMonth; i++) {
+          const dayDate = new Date(currentYear, currentMonth, i);
+          const formattedDayDate = getFormattedDate(dayDate);
+          eventsToDisplayForMonthlyIndicators[formattedDayDate] = [];
+          allEventPatterns.forEach(pattern => {
+            if (isEventVisibleOnDay(pattern, dayDate)) {
+              eventsToDisplayForMonthlyIndicators[formattedDayDate].push(pattern);
+            }
+          });
+            // Ordenar eventos por hora de inicio, luego por título para una visualización consistente
+          eventsToDisplayForMonthlyIndicators[formattedDayDate].sort((a, b) => {
+            const timeA = hourSlots.indexOf(a.startTime);
+            const timeB = hourSlots.indexOf(b.startTime);
+            if (timeA - timeB !== 0) return timeA - timeB;
+            return a.title.localeCompare(b.title);
+          });
+        }
+
+        // Días del mes anterior
+        for (let i = 0; i < startDay; i++) {
+          const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
+          const cell = document.createElement('div');
+          cell.classList.add('day-cell', 'other-month');
+          cell.innerHTML = `<span class="day-number">${prevMonthLastDay - (startDay - 1 - i)}</span>`;
+          calendarGrid.appendChild(cell);
+        }
+
+        // Días del mes actual
+        for (let i = 1; i <= daysInMonth; i++) {
+          const cell = document.createElement('div');
+          cell.classList.add('day-cell', 'current-month');
+          const date = new Date(currentYear, currentMonth, i);
+          const formattedDate = getFormattedDate(date);
+          cell.setAttribute('data-date', formattedDate);
+          cell.innerHTML = `<span class="day-number">${i}</span>`;
+
+          if (eventsToDisplayForMonthlyIndicators[formattedDate] && eventsToDisplayForMonthlyIndicators[formattedDate].length > 0) {
+            const indicator = document.createElement('div');
+            indicator.classList.add('event-indicator');
+            // Usar la categoría del primer evento (después de ordenar) para el color del indicador
+            indicator.style.backgroundColor = eventCategoryColors[eventsToDisplayForMonthlyIndicators[formattedDate][0].category];
+            cell.appendChild(indicator);
+          }
+
+          cell.addEventListener('click', () => openEventModal(date, eventsToDisplayForMonthlyIndicators[formattedDate]));
+          calendarGrid.appendChild(cell);
+        }
+
+        // Días del mes siguiente
+        const totalCells = startDay + daysInMonth;
+        const remainingCells = 42 - totalCells; // Asegurar 6 semanas completas (6 filas * 7 días)
+        for (let i = 1; i <= remainingCells; i++) {
+          const cell = document.createElement('div');
+          cell.classList.add('day-cell', 'other-month');
+          cell.innerHTML = `<span class="day-number">${i}</span>`;
+          calendarGrid.appendChild(cell);
+        }
+      }
+
+      // --- Renderizado del Horario Semanal (con eventos que se extienden) ---
+      function renderWeeklySchedule() {
+        weeklyScheduleBody.innerHTML = ''; // Limpiar tabla existente
+
+        const today = selectedDate || new Date();
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - getCalendarDayOfWeek(today));
+        weekStart.setHours(0,0,0,0);
+
+        const weekDates = [];
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(weekStart);
+          date.setDate(weekStart.getDate() + i);
+          weekDates.push(date);
+        }
+
+        const timeSlotCount = hourSlots.length;
+        const dayCount = 7;
+
+        // cellMatrix[hourIndex][dayIndex] almacenará {eventPattern, rowspan} si un evento comienza allí
+        const cellMatrix = Array(timeSlotCount).fill(null).map(() => Array(dayCount).fill(null));
+        // coveredCells[hourIndex][dayIndex] es verdadero si esta celda está cubierta por un evento de una hora anterior
+        const coveredCells = Array(timeSlotCount).fill(null).map(() => Array(dayCount).fill(false));
+
+        weekDates.forEach((date, dayIndex) => {
+          const dayEvents = allEventPatterns.filter(pattern => isEventVisibleOnDay(pattern, date));
+          dayEvents.sort((a, b) => {
+            const timeA = hourSlots.indexOf(a.startTime);
+            const timeB = hourSlots.indexOf(b.startTime);
+            if (timeA - timeB !== 0) return timeA - timeB;
+            return a.title.localeCompare(b.title);
+          });
+
+          dayEvents.forEach(eventPattern => {
+            const startHourIndex = hourSlots.indexOf(eventPattern.startTime);
+            const endHourIndex = hourSlots.indexOf(eventPattern.endTime);
+
+            // Si la hora de finalización es anterior a la hora de inicio, o no se encuentra, o está fuera de los slots, se omite.
+            // Debe abarcar al menos un slot.
+            if (startHourIndex === -1 || endHourIndex === -1 || startHourIndex >= endHourIndex) {
+              console.warn(`Rango de tiempo de evento inválido o de duración cero para: ${eventPattern.title} (${eventPattern.startTime}-${eventPattern.endTime}). El evento debe abarcar al menos un slot.`);
+              return;
+            }
+
+            // Calcular rowspan basado en el número de slots de 30 minutos cubiertos
+            const rowspan = endHourIndex - startHourIndex;
+
+            // Comprobar si la celda de inicio actual ya está cubierta por otro evento
+            // Asegurarse de no intentar acceder fuera de los límites para hourIndex
+            if (startHourIndex < timeSlotCount && !coveredCells[startHourIndex][dayIndex]) {
+              cellMatrix[startHourIndex][dayIndex] = {
+                event: eventPattern,
+                rowspan: rowspan
+              };
+              // Marcar slots subsiguientes como cubiertos
+              for (let i = startHourIndex + 1; i < startHourIndex + rowspan; i++) {
+                if (i < timeSlotCount) { // Prevenir marcado fuera de límites
+                  coveredCells[i][dayIndex] = true;
+                }
+              }
+            }
+          });
+        });
+
+        // Renderizar la tabla basándose en cellMatrix y coveredCells
+        for (let hourIndex = 0; hourIndex < timeSlotCount; hourIndex++) {
+          const row = document.createElement('tr');
+          const hourCell = document.createElement('td');
+          hourCell.textContent = hourSlots[hourIndex];
+          row.appendChild(hourCell);
+
+          for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
+            if (coveredCells[hourIndex][dayIndex]) {
+              continue; // Esta celda está cubierta por un rowspan de una fila anterior, no renderizar un TD
+            }
+
+            const dayCell = document.createElement('td');
+            const cellData = cellMatrix[hourIndex][dayIndex]; // ¿Comienza un evento aquí?
+
+            if (cellData && cellData.event) { // Si hay un evento comenzando aquí
+              const eventDiv = document.createElement('div');
+              eventDiv.classList.add('weekly-event-item');
+              eventDiv.setAttribute('data-category', cellData.event.category);
+
+              let recurrenceText = '';
+              if (cellData.event.recurrence === 'daily') recurrenceText = ' (D)';
+              else if (cellData.event.recurrence === 'weekly') recurrenceText = ' (S)';
+              else if (cellData.event.recurrence === 'monthly') recurrenceText = ' (M)';
+
+              const timeRange = `${cellData.event.startTime} - ${cellData.event.endTime}`;
+              eventDiv.innerHTML = `<strong>${cellData.event.title}${recurrenceText}</strong><small>${timeRange}</small>`;
+
+              dayCell.setAttribute('rowspan', cellData.rowspan);
+              dayCell.appendChild(eventDiv);
+
+              // Capturar valores para el event listener (importante para datos dinámicos)
+              const eventDate = new Date(weekDates[dayIndex]);
+              // Usar un cierre para capturar `cellData.event` correctamente
+              eventDiv.addEventListener('click', ((currentDate, eventPattern) => {
+                return (e) => {
+                  e.stopPropagation(); // Prevenir clic en la celda para abrir el modal inmediatamente
+                  openEventModal(currentDate, [eventPattern]);
+                };
+              })(eventDate, cellData.event));
+
+            } else {
+              // Celda vacía, añadir listener de clic para agregar evento
+              const eventDate = new Date(weekDates[dayIndex]);
+              // Usar un cierre para capturar `hourSlots[hourIndex]` correctamente
+              dayCell.addEventListener('click', ((currentDate, defaultStartTime) => {
+                return () => {
+                  const defaultEndTime = hourSlots[hourSlots.indexOf(defaultStartTime) + 1] || hourSlots[hourSlots.length - 1]; // Por defecto al siguiente slot o al último
+                  openEventModal(currentDate, [], defaultStartTime, defaultEndTime);
+                };
+              })(eventDate, hourSlots[hourIndex]));
+            }
+            row.appendChild(dayCell);
+          }
+          weeklyScheduleBody.appendChild(row);
+        }
+      }
+
+
+      // --- Lógica del Modal ---
+      function openEventModal(date, dayEventsToDisplay = [], defaultStartTime = hourSlots[0], defaultEndTime = hourSlots[Math.min(hourSlots.length - 1, hourSlots.indexOf(hourSlots[0]) + 1)]) {
+        selectedDate = date;
+        const day = selectedDate.getDate();
+        const month = monthNames[selectedDate.getMonth()];
+        const year = selectedDate.getFullYear();
+
+        modalTitle.textContent = `Eventos del ${day} de ${month} de ${year}`;
+
+        currentDayEventsContainer.innerHTML = '';
+
+        if (dayEventsToDisplay && dayEventsToDisplay.length > 0) {
+          noEventsMessage.style.display = 'none';
+
+          dayEventsToDisplay.forEach(eventPattern => {
+            const eventItem = document.createElement('div');
+            eventItem.classList.add('event-item');
+            eventItem.setAttribute('data-category', eventPattern.category);
+
+            let recurrenceText = '';
+            if (eventPattern.recurrence === 'daily') recurrenceText = ' (Diario)';
+            else if (eventPattern.recurrence === 'weekly') recurrenceText = ' (Semanal)';
+            else if (eventPattern.recurrence === 'monthly') recurrenceText = ' (Mensual)';
+
+            const displayTimeRange = (eventPattern.startTime && eventPattern.endTime) ? `<br><small>${eventPattern.startTime} - ${eventPattern.endTime}</small>` : '';
+            const displayStartDate = (eventPattern.recurrence && eventPattern.recurrence !== 'none') ? `<br><small>Inicio: ${new Date(eventPattern.startDate).toLocaleDateString('es-ES')}</small>` : '';
+
+
+            eventItem.innerHTML = `
+              <div class="event-item-info">
+                <strong>${eventPattern.title}${recurrenceText}</strong>
+                <small>${eventPattern.description}</small>
+                ${displayTimeRange}
+                ${displayStartDate}
+              </div>
+              <button class="event-delete-btn" data-event-id="${eventPattern.id}" aria-label="Eliminar evento">🗑️</button>
+            `;
+
+            eventItem.querySelector('.event-delete-btn').addEventListener('click', async (e) => { // AHORA ES ASYNC
+              const eventIdToDelete = e.target.dataset.eventId;
+              let confirmDelete = true;
+              const patternToDelete = allEventPatterns.find(p => p.id === eventIdToDelete);
+              if (patternToDelete && patternToDelete.recurrence !== 'none') {
+                confirmDelete = confirm('Este es un evento recurrente. ¿Estás seguro de que quieres eliminar TODAS sus ocurrencias futuras?');
+              }
+
+              if (confirmDelete) {
+                try {
+                  await deleteDoc(doc(db, "events", eventIdToDelete)); // BORRA DE FIRESTORE
+                  console.log("Evento eliminado de Firestore:", eventIdToDelete);
+                  await loadData(); // Re-cargar datos desde Firestore para la UI
+                  if (currentView === 'monthly') renderMonthlyCalendar();
+                  else renderWeeklySchedule();
+
+                  const remainingEvents = allEventPatterns.filter(p => isEventVisibleOnDay(p, selectedDate));
+                  if (remainingEvents.length > 0) {
+                    openEventModal(selectedDate, remainingEvents);
+                  } else {
+                    closeEventModal();
+                  }
+                } catch (e) {
+                  console.error("Error al eliminar evento de Firestore:", e);
+                  alert("No se pudo eliminar el evento.");
+                }
+              }
+            });
+            currentDayEventsContainer.appendChild(eventItem);
+          });
+
+          viewEventsList.style.display = 'block';
+          addEventForm.style.display = 'none';
+
+        } else {
+          noEventsMessage.style.display = 'block';
+          currentDayEventsContainer.innerHTML = '';
+
+          // Cambiar directamente al formulario de añadir si no hay eventos
+          viewEventsList.style.display = 'none';
+          addEventForm.style.display = 'block';
+          modalTitle.textContent = `Añadir Evento (${day} de ${month})`;
+        }
+
+        // Establecer horas predeterminadas para el formulario de nuevo evento
+        eventStartTimeSelect.value = defaultStartTime;
+        eventEndTimeSelect.value = defaultEndTime;
+
+        eventModal.classList.add('active');
+      }
+
+      function closeEventModal() {
+        eventModal.classList.remove('active');
+        selectedDate = null;
+        // Restablecer campos del formulario de añadir
+        eventTitleInput.value = '';
+        eventDescriptionInput.value = '';
+        eventStartTimeSelect.value = hourSlots[0];
+        eventEndTimeSelect.value = hourSlots[Math.min(hourSlots.length - 1, hourSlots.indexOf(hourSlots[0]) + 1)]; // Por defecto a la próxima hora
+        eventCategorySelect.value = 'work';
+        document.querySelector('input[name="recurrence"][value="none"]').checked = true;
+      }
+
+      // --- Event Listeners ---
+      // Botones de navegación para el calendario mensual
+      prevMonthBtn.addEventListener('click', () => {
+        currentMonth--;
+        if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+        renderMonthlyCalendar();
+      });
+      nextMonthBtn.addEventListener('click', () => {
+        currentMonth++;
+        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+        renderMonthlyCalendar();
+      });
+
+      // Botón de guardar evento (para el formulario de añadir)
+      saveEventBtn.addEventListener('click', async () => { // ES AHORA ASYNC
+        const title = eventTitleInput.value.trim();
+        if (!title) { alert('El título del evento es obligatorio.'); return; }
+
+        const startTime = eventStartTimeSelect.value;
+        const endTime = eventEndTimeSelect.value;
+
+        if (hourSlots.indexOf(startTime) >= hourSlots.indexOf(endTime)) {
+          alert('La hora de inicio debe ser anterior a la hora de fin.');
+          return;
+        }
+
+        const selectedRecurrence = document.querySelector('input[name="recurrence"]:checked').value;
+
+        const newEventData = {
+          title: title,
+          description: eventDescriptionInput.value.trim(),
+          startTime: startTime,
+          endTime: endTime,
+          category: eventCategorySelect.value,
+          startDate: getFormattedDate(selectedDate), // Almacenar como YYYY-MM-DD
+          recurrence: selectedRecurrence,
+          createdAt: new Date().toISOString() // Opcional: para ordenar/auditar
+        };
+
+        try {
+          await addDoc(eventsCol, newEventData); // AÑADE A FIRESTORE
+          console.log("Evento añadido a Firestore:", newEventData);
+          await loadData(); // Re-cargar datos desde Firestore para la UI
+          if (currentView === 'monthly') renderMonthlyCalendar();
+          else renderWeeklySchedule();
+          closeEventModal();
+        } catch (e) {
+          console.error("Error al añadir evento a Firestore:", e);
+          alert("No se pudo añadir el evento.");
+        }
+      });
+
+      // Botón de cancelar añadir evento
+      cancelAddEventBtn.addEventListener('click', () => {
+        // Si había eventos antes, volver a la vista. De lo contrario, simplemente cerrar.
+        const eventsOnDay = allEventPatterns.filter(p => isEventVisibleOnDay(p, selectedDate));
+        if (eventsOnDay.length > 0) {
+          openEventModal(selectedDate, eventsOnDay);
+        } else {
+          closeEventModal();
+        }
+      });
+
+      // Botón "Añadir Nuevo Evento" de la lista de vista
+      addEventFromViewBtn.addEventListener('click', () => {
+        viewEventsList.style.display = 'none';
+        addEventForm.style.display = 'block';
+        modalTitle.textContent = `Añadir Evento (${selectedDate.getDate()} de ${monthNames[selectedDate.getMonth()]})`;
+        // Restablecer campos del formulario con los valores predeterminados apropiados
+        eventTitleInput.value = '';
+        eventDescriptionInput.value = '';
+        eventCategorySelect.value = 'work';
+        document.querySelector('input[name="recurrence"][value="none"]').checked = true;
+
+        // Establecer horas predeterminadas en el formulario al cambiar a añadir evento
+        const d = new Date();
+        // Encontrar el slot de hora más cercano para la hora actual
+        const currentMinutes = d.getMinutes();
+        let closestMinuteSlot = 0;
+        if (currentMinutes > 15 && currentMinutes <= 45) {
+          closestMinuteSlot = 30;
+        } else if (currentMinutes > 45) {
+          closestMinuteSlot = 0; // Próxima hora
+          d.setHours(d.getHours() + 1);
+        }
+        const currentHourSlot = `${d.getHours().toString().padStart(2, '0')}:${closestMinuteSlot.toString().padStart(2, '0')}`;
+
+        const startIndex = hourSlots.indexOf(currentHourSlot);
+        const defaultStartTime = startIndex !== -1 ? hourSlots[startIndex] : hourSlots[0];
+        const defaultEndTime = startIndex !== -1 && startIndex + 1 < hourSlots.length ? hourSlots[startIndex + 1] : hourSlots[hourSlots.length - 1];
+
+        eventStartTimeSelect.value = defaultStartTime;
+        eventEndTimeSelect.value = defaultEndTime;
+      });
+
+      // Botón "Cerrar" de la lista de vista
+      closeModalViewBtn.addEventListener('click', closeEventModal);
+
+      // Cerrar modal si se hace clic fuera del contenido
+      eventModal.addEventListener('click', (e) => {
+        if (e.target === eventModal) { closeEventModal(); }
+      });
+
+      // --- Botones de Cambio de Vista ---
+      monthlyViewBtn.addEventListener('click', () => {
+        currentView = 'monthly';
+        monthlyViewContainer.classList.add('active');
+        weeklyViewContainer.classList.remove('active');
+        monthlyViewBtn.classList.add('active');
+        weeklyViewBtn.classList.remove('active');
+        renderMonthlyCalendar();
+        selectedDate = null; // Reiniciar fecha seleccionada al cambiar de vista
+      });
+
+      weeklyViewBtn.addEventListener('click', () => {
+        currentView = 'weekly';
+        monthlyViewContainer.classList.remove('active');
+        weeklyViewContainer.classList.add('active');
+        monthlyViewBtn.classList.remove('active');
+        weeklyViewBtn.classList.add('active');
+        if (!selectedDate) { // Asegurar que selectedDate sea el día actual si se navega a la vista semanal sin seleccionar un día
+          selectedDate = new Date();
+        }
+        renderWeeklySchedule();
+        renderTasks(); // Renderizar tareas al cambiar a la vista semanal
+      });
+
+      // Rellenar opciones de hora en el modal
+      function populateHourOptions() {
+        eventStartTimeSelect.innerHTML = '';
+        eventEndTimeSelect.innerHTML = ''; // También rellenar hora de fin
+        hourSlots.forEach(hour => {
+          const startOption = document.createElement('option');
+          startOption.value = hour;
+          startOption.textContent = hour;
+          eventStartTimeSelect.appendChild(startOption);
+
+          const endOption = document.createElement('option');
+          endOption.value = hour;
+          endOption.textContent = hour;
+          eventEndTimeSelect.appendChild(endOption);
+        });
+        // Asegurar que la hora de finalización sea al menos un paso después de la hora de inicio
+        eventStartTimeSelect.addEventListener('change', () => {
+          const startIndex = hourSlots.indexOf(eventStartTimeSelect.value);
+          const currentEndTimeIndex = hourSlots.indexOf(eventEndTimeSelect.value);
+          // Si la nueva hora de inicio es posterior o igual a la hora de finalización actual, ajustar la hora de finalización
+          if (startIndex >= currentEndTimeIndex && startIndex + 1 < hourSlots.length) {
+            eventEndTimeSelect.value = hourSlots[startIndex + 1];
+          } else if (startIndex >= currentEndTimeIndex && startIndex + 1 === hourSlots.length) {
+            // Si la hora de inicio es el último slot, la hora de finalización también debe ser el último slot (ej. 23:00 - 23:00)
+            eventEndTimeSelect.value = hourSlots[startIndex];
+          }
+        });
+        eventEndTimeSelect.addEventListener('change', () => {
+          const startIndex = hourSlots.indexOf(eventStartTimeSelect.value);
+          const currentEndTimeIndex = hourSlots.indexOf(eventEndTimeSelect.value);
+          // Si la nueva hora de finalización es anterior o igual a la hora de inicio actual, ajustar la hora de inicio
+          if (currentEndTimeIndex <= startIndex && currentEndTimeIndex -1 >=0) {
+            eventStartTimeSelect.value = hourSlots[currentEndTimeIndex - 1];
+          } else if (currentEndTimeIndex <= startIndex && currentEndTimeIndex -1 < 0) {
+            eventStartTimeSelect.value = hourSlots[0]
+          }
+        });
+      }
+
+      // --- Lógica de Tareas Pendientes (AHORA FUENTE ES FIRESTORE) ---
+      // La función `saveTasks()` como tal ya no es necesaria, porque cada operación actualiza Firestore
+      // y `allTasks` se recarga con `loadData()`.
+
+      async function renderTasks() { // AHORA ES ASYNC
+        tasksListContainer.innerHTML = ''; // Limpiar lista actual
+
+        // allTasks ya se ha cargado desde Firestore en `loadData()`.
+        // Ordenar tareas: incompletas primero, luego por fecha de vencimiento (más cercanas primero), luego completadas
+        allTasks.sort((a, b) => {
+          if (a.completed && !b.completed) return 1; // Completadas al final
+          if (!a.completed && b.completed) return -1; // Incompletas al principio
+
+          // Para tareas incompletas, ordenar por fecha de vencimiento (normalizando a medianoche)
+          const dateA = new Date(a.dueDate + 'T00:00:00');
+          const dateB = new Date(b.dueDate + 'T00:00:00');
+          return dateA - dateB;
+        });
+
+        if (allTasks.length === 0) {
+          tasksListContainer.innerHTML = '<p style="text-align: center; color: #888; font-style: italic;">No hay tareas pendientes.</p>';
+          return;
+        }
+
+        allTasks.forEach(task => {
+          const taskItem = document.createElement('div');
+          taskItem.classList.add('task-item');
+          if (task.completed) {
+            taskItem.classList.add('completed');
+          }
+
+          const dueDateObj = new Date(task.dueDate + 'T00:00:00'); // Analizar como fecha local a medianoche
+          const today = new Date();
+          today.setHours(0,0,0,0); // Normalizar la fecha actual a medianoche
+
+          const diffTime = dueDateObj.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Días restantes, redondeados hacia arriba
+
+          let dueDateText = `Fecha de entrega: ${new Date(task.dueDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+          let notificationMessage = '';
+
+          if (!task.completed) {
+            if (diffDays <= 3 && diffDays >= 0) { // Vencimiento en 0, 1, 2 o 3 días
+              taskItem.classList.add('due-soon');
+              if (diffDays === 0) notificationMessage = '<span style="color:red; font-weight:bold;">¡Vence hoy!</span>';
+              else if (diffDays === 1) notificationMessage = '<span style="color:orange; font-weight:bold;">¡Vence mañana!</span>';
+              else notificationMessage = `<span style="color:orange; font-weight:bold;">Vence en ${diffDays} días</span>`;
+            } else if (diffDays < 0) { // Vencida
+              taskItem.classList.add('due-soon'); // Seguir resaltando si está vencida
+              notificationMessage = '<span style="color:darkred; font-weight:bold;">¡Vencida!</span>';
+            }
+          }
+
+          taskItem.innerHTML = `
+            <div class="task-item-info">
+              <strong>${task.title}</strong>
+              <small>${dueDateText} ${notificationMessage}</small>
+            </div>
+            <div class="task-actions">
+              <button class="complete-btn" data-id="${task.id}" title="${task.completed ? 'Marcar como incompleta' : 'Marcar como completa'}">${task.completed ? '✅' : '☑️'}</button>
+              <button class="delete-btn" data-id="${task.id}" title="Eliminar tarea">🗑️</button>
+            </div>
+          `;
+
+          tasksListContainer.appendChild(taskItem);
+        });
+
+        // Añadir event listeners para los nuevos botones
+        document.querySelectorAll('.complete-btn').forEach(button => {
+          button.addEventListener('click', async (e) => { // AHORA ES ASYNC
+            const taskId = e.currentTarget.dataset.id;
+            await toggleTaskComplete(taskId); // ESPERA LA ACTUALIZACIÓN
+          });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(button => {
+          button.addEventListener('click', async (e) => { // AHORA ES ASYNC
+            const taskId = e.currentTarget.dataset.id;
+            if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+              await deleteTask(taskId); // ESPERA LA ELIMINACIÓN
+            }
+          });
+        });
+      }
+
+      async function toggleTaskComplete(id) { // AHORA ES ASYNC
+        const taskRef = doc(db, "tasks", id);
+        try {
+          const taskToUpdate = allTasks.find(t => t.id === id);
+          if (taskToUpdate) {
+            await updateDoc(taskRef, { completed: !taskToUpdate.completed }); // ACTUALIZA FIRESTORE
+            console.log("Tarea actualizada en Firestore:", id);
+            await loadData(); // Re-cargar todas las tareas para tener la última versión
+            renderTasks();
+          }
+        } catch (e) {
+          console.error("Error al actualizar tarea en Firestore:", e);
+          alert("No se pudo actualizar la tarea.");
+        }
+      }
+
+      async function deleteTask(id) { // AHORA ES ASYNC
+        const taskRef = doc(db, "tasks", id);
+        try {
+          await deleteDoc(taskRef); // BORRA DE FIRESTORE
+          console.log("Tarea eliminada de Firestore:", id);
+          await loadData(); // Re-cargar todas las tareas para tener la última versión
+          renderTasks();
+        } catch (e) {
+          console.error("Error al eliminar tarea de Firestore:", e);
+          alert("No se pudo eliminar la tarea.");
+        }
+      }
+
+      // --- Movimiento Aleatorio de Kirby ---
+      const kirby = document.querySelector('.kirby');
+      const minKirbyLeft = 5; // Mínimo % del viewport desde la izquierda
+      const maxKirbyLeft = 85; // Máximo % del viewport desde la izquierda (ajustado para que no se salga de pantalla)
+
+      function moveKirbyRandomly() {
+        const newLeft = Math.random() * (maxKirbyLeft - minKirbyLeft) + minKirbyLeft;
+        kirby.style.left = `${newLeft}vw`;
+      }
+
+      // Iniciar el movimiento aleatorio de Kirby
+      moveKirbyRandomly(); // Mover una vez al cargar
+      setInterval(moveKirbyRandomly, 6000); // Mover cada 6 segundos
+
+      // --- Lógica de animación de fondo de flores ---
+      const flowerContainer = document.querySelector('.flower-container');
+      const flowerImages = [
+        'flower-type-0', // Nombres de clase correspondientes a fondos de imagen
+        'flower-type-1',
+        'flower-type-2',
+        'flower-type-3'
+      ];
+
+      function createFlower() {
+        const flower = document.createElement('div');
+
+        // Seleccionar aleatoriamente uno de los tipos de imagen de flores
+        const randomImageIndex = Math.floor(Math.random() * flowerImages.length);
+        flower.classList.add('flower', flowerImages[randomImageIndex]);
+
+        // Aleatorizar posición inicial (usando unidades de viewport para la capacidad de respuesta)
+        const randomLeft = Math.random() * 100; // 0-100vw
+        const randomTop = Math.random() * 100; // 0-100vh
+        flower.style.left = `${randomLeft}vw`;
+        flower.style.top = `${randomTop}vh`;
+
+        // Añadir una duración de animación aleatoria para variedad
+        flower.style.animationDuration = `${Math.random() * (12 - 6) + 6}s`; // Entre 6 y 12 segundos
+        flower.style.animationDelay = `${Math.random() * 3}s`; // Escalonar animaciones
+
+        // Opacidad inicial 0, luego fundido de entrada después de un pequeño retraso
+        flowerContainer.appendChild(flower);
+        setTimeout(() => {
+          flower.style.opacity = 0.4 + Math.random() * 0.6; // Opacidad aleatoria entre 0.4 y 1
+        }, 50); // Pequeño retraso para permitir que la transición CSS se aplique
+
+        // Eliminar la flor después de algún tiempo para mantener el DOM limpio
+        const lifeTime = Math.random() * (20000 - 10000) + 10000; // Entre 10 y 20 segundos
+        setTimeout(() => {
+          flower.style.opacity = 0; // Fundido de salida
+          setTimeout(() => {
+            flower.remove();
+          }, 2000); // Eliminar después de la transición de fundido de salida (2 segundos, coincidiendo con la transición CSS)
+        }, lifeTime);
+      }
+
+      // Flores iniciales al cargar (crear un puñado)
+      for (let i = 0; i < 7; i++) { // Empezar con unas 7 flores
+        createFlower();
+      }
+
+      // Generar continuamente nuevas flores
+      setInterval(createFlower, 4000); // Generar una nueva flor aproximadamente cada 4 segundos
+
+      // --- Inicialización ---
+      await loadData(); // Espera a que los datos se carguen desde Firebase/localStorage
+
+      populateHourOptions(); // Rellenar desplegable de horas
+      renderMonthlyCalendar(); // Iniciar con vista mensual
+      // Establecer la vista inicial como mensual activa
+      monthlyViewContainer.classList.add('active');
+      monthlyViewBtn.classList.add('active');
+
+      // Establecer la fecha mínima para la fecha de vencimiento de la nueva tarea a hoy
+      newTaskDueDateInput.min = new Date().toISOString().split('T')[0];
+
+      // Añadir event listener para añadir tareas
+      addTaskBtn.addEventListener('click', async () => { // AHORA ES ASYNC
+        const title = newTaskTitleInput.value.trim();
+        const dueDate = newTaskDueDateInput.value; // Formato YYYY-MM-DD
+
+        if (!title || !dueDate) {
+          alert('Por favor, introduce el título y la fecha de entrega de la tarea.');
+          return;
+        }
+
+        const newTask = {
+          title: title,
+          dueDate: dueDate,
+          completed: false,
+          createdAt: new Date().toISOString()
+        };
+
+        try {
+          const docRef = await addDoc(tasksCol, newTask); // AÑADE A FIRESTORE
+          console.log("Tarea añadida con ID:", docRef.id);
+          newTaskTitleInput.value = ''; // Limpiar input
+          newTaskDueDateInput.value = ''; // Limpiar input
+          await loadData(); // Re-cargar todas las tareas para tener la última versión
+          renderTasks();
+        } catch (e) {
+          console.error("Error al añadir la tarea a Firestore:", e);
+          alert("No se pudo añadir la tarea.");
+        }
+      });
+
+      // Renderizado inicial de tareas, después de cargar los datos
+      renderTasks();
+    });
+  </script>
+</body>
+</html>
+```
